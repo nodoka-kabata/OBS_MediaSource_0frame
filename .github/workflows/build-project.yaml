@@ -75,6 +75,8 @@ jobs:
     name: Build for macOS 🍏
     runs-on: macos-15
     needs: check-event
+    # ponytail: macOS unsupported for now (Windows x64 only), re-enable when macOS build is restored
+    if: false
     defaults:
       run:
         shell: zsh --no-rcs --errexit --pipefail {0}
@@ -182,6 +184,8 @@ jobs:
         os: [ubuntu-24.04]
     runs-on: ${{ matrix.os }}
     needs: check-event
+    # ponytail: Ubuntu unsupported for now (Windows x64 only), re-enable when Linux build is restored
+    if: false
     defaults:
       run:
         shell: bash
