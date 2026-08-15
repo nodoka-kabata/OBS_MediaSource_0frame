@@ -22,7 +22,9 @@ OBS Studioのプログラム出力へシーンが切り替わった瞬間に、�
 
 ## インストール
 
-ビルド済みファイルを、OBSのユーザープラグインフォルダーへ次の構成で配置します。
+OBS Studioを終了し、配布された`Program Standby Source-{version}-Windows-x64-Setup.exe`を実行してください。管理者権限は不要です。アンインストールはWindowsの「インストールされているアプリ」から行えます。
+
+手動で導入する場合は、ビルド済みファイルをOBSのユーザープラグインフォルダーへ次の構成で配置します。
 
 ```text
 %APPDATA%\obs-studio\plugins\program-standby-source\
@@ -65,6 +67,16 @@ cmake --install build_x64 --config RelWithDebInfo --prefix release/RelWithDebInf
 ```
 
 インストール用のファイルは`release/RelWithDebInfo/program-standby-source/`に生成されます。
+
+### Windowsインストーラー
+
+[Inno Setup 6](https://jrsoftware.org/isdl.php)をインストールした環境で、次を実行します。プラグインのReleaseビルド、ステージング、セットアップEXE生成をまとめて行います。
+
+```powershell
+.\installer\build-installer.ps1
+```
+
+生成物は`dist/Program Standby Source-{version}-Windows-x64-Setup.exe`です。バージョンと製品名は`buildspec.json`から取得されます。
 
 ## テスト
 
