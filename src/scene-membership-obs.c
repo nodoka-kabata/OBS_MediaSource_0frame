@@ -56,13 +56,12 @@ static bool obs_item_is_group(sm_node_t item) {
     return obs_sceneitem_is_group(n->as.item);
 }
 
-bool standby_is_source_in_program(obs_source_t *target) {
-    obs_source_t *program_scene_source = obs_frontend_get_current_scene();
-    if (!program_scene_source)
+static bool standby_scene_contains_source(obs_source_t *scene_source, obs_source_t *target) {
+    if (!scene_source)
         return false;
 
-    obs_scene_t *program_scene = obs_scene_from_source(program_scene_source);
-    obs_node_t root = { .kind = OBS_NODE_SCENE, .as.scene = program_scene };
+    obs_scene_t *scene = obs_scene_from_source(scene_source);
+    obs_node_t root = { .kind = OBS_NODE_SCENE, .as.scene = scene };
 
     static const sm_adapter_t adapter = {
         .enum_children = obs_enum_children,
@@ -70,7 +69,15 @@ bool standby_is_source_in_program(obs_source_t *target) {
         .item_is_group = obs_item_is_group,
     };
 
-    bool found = program_scene ? sm_scene_contains_source(&root, (sm_node_t)target, &adapter) : false;
-    obs_source_release(program_scene_source);
+    bool found = scene ? sm_scene_contains_source(&root, (sm_node_t)target, &adapter) : false;
+    obs_source_release(scene_source);
     return found;
+}
+
+bool standby_is_source_in_program(obs_source_t *target) {
+    return standby_scene_contains_source(obs_frontend_get_current_scene(), target);
+}
+
+bool standby_is_source_in_preview(obs_source_t *target) {
+    return standby_scene_contains_source(obs_frontend_get_current_preview_scene(), target);
 }

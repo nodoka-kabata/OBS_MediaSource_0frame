@@ -85,6 +85,8 @@ struct standby_source {
 // destroy (defined earlier in this file) need to reference them too.
 static void program_standby_start_playback(struct standby_source *s);
 static void program_standby_reset_to_standby(struct standby_source *s);
+static void program_standby_prepare_preview(struct standby_source *s);
+static void program_standby_prepare_preview_if_needed(struct standby_source *s);
 static void program_standby_frontend_event(enum obs_frontend_event event, void *data);
 
 // Used to safely cancel and join any active reconnect threads
@@ -546,6 +548,7 @@ static void standby_source_update(void *data, obs_data_t *settings)
 		s->program_standby_was_in_program = is_in_program;
 		if (!is_in_program)
 			program_standby_reset_to_standby(s);
+		program_standby_prepare_preview_if_needed(s);
 	}
 }
 
@@ -693,6 +696,7 @@ static void *standby_source_create(obs_data_t *settings, obs_source_t *source)
 		s->program_standby_was_in_program = now;
 		if (!now)
 			program_standby_reset_to_standby(s);
+		program_standby_prepare_preview_if_needed(s);
 	}
 
 	return s;
@@ -722,6 +726,14 @@ static void standby_source_destroy(void *data)
 static void standby_source_activate(void *data)
 {
 	struct standby_source *s = data;
+	obs_data_t *settings = obs_source_get_settings(s->source);
+	bool program_standby_enabled = obs_data_get_bool(settings, "program_standby_enabled");
+	obs_data_release(settings);
+
+	if (program_standby_enabled) {
+		program_standby_prepare_preview_if_needed(s);
+		return;
+	}
 
 	if (s->restart_on_activate)
 		obs_source_media_restart(s->source);
@@ -749,22 +761,38 @@ static void program_standby_start_playback(struct standby_source *s)
 	obs_source_media_restart(s->source);
 }
 
-// Reuses the exact calls standby_source_deactivate() makes to pause and reset: media_playback_stop()
-// (which internally seeks the media back to its start, same as the stock restart-on-activate path)
-// followed by clearing the displayed frame if is_clear_on_media_end is set. Not reimplemented.
+// Keep the decoder active but paused so seek(0) can decode and retain the first frame.
 static void program_standby_reset_to_standby(struct standby_source *s)
 {
 	if (s->media) {
-		media_playback_stop(s->media);
-
-		if (s->is_clear_on_media_end)
-			obs_source_output_video(s->source, NULL);
+		media_playback_play_pause(s->media, true);
+		media_playback_seek(s->media, 0);
+		set_media_state(s, OBS_MEDIA_STATE_PAUSED);
 	}
+}
+
+static void program_standby_prepare_preview(struct standby_source *s)
+{
+	if (!s->media || s->state == OBS_MEDIA_STATE_NONE || s->state == OBS_MEDIA_STATE_STOPPED ||
+	    s->state == OBS_MEDIA_STATE_ENDED)
+		standby_source_start(s);
+
+	program_standby_reset_to_standby(s);
+}
+
+static void program_standby_prepare_preview_if_needed(struct standby_source *s)
+{
+	standby_action_t action = standby_preview_action(obs_frontend_preview_program_mode_active(),
+							 standby_is_source_in_program(s->source),
+							 standby_is_source_in_preview(s->source));
+	if (action == STANDBY_ACTION_PREPARE_STANDBY)
+		program_standby_prepare_preview(s);
 }
 
 static void program_standby_frontend_event(enum obs_frontend_event event, void *data)
 {
-	if (event != OBS_FRONTEND_EVENT_SCENE_CHANGED)
+	if (event != OBS_FRONTEND_EVENT_SCENE_CHANGED && event != OBS_FRONTEND_EVENT_PREVIEW_SCENE_CHANGED &&
+	    event != OBS_FRONTEND_EVENT_STUDIO_MODE_ENABLED)
 		return;
 
 	struct standby_source *s = data;
@@ -775,10 +803,17 @@ static void program_standby_frontend_event(enum obs_frontend_event event, void *
 	if (!enabled)
 		return;
 
-	bool is_in_program = standby_is_source_in_program(s->source);
-	bool new_flag;
-	standby_action_t action = standby_next_action(s->program_standby_was_in_program, is_in_program, &new_flag);
-	s->program_standby_was_in_program = new_flag;
+	standby_action_t action;
+	if (event == OBS_FRONTEND_EVENT_SCENE_CHANGED) {
+		bool is_in_program = standby_is_source_in_program(s->source);
+		bool new_flag;
+		action = standby_next_action(s->program_standby_was_in_program, is_in_program, &new_flag);
+		s->program_standby_was_in_program = new_flag;
+	} else {
+		action = standby_preview_action(obs_frontend_preview_program_mode_active(),
+						standby_is_source_in_program(s->source),
+						standby_is_source_in_preview(s->source));
+	}
 
 	switch (action) {
 	case STANDBY_ACTION_PLAY:
@@ -786,6 +821,9 @@ static void program_standby_frontend_event(enum obs_frontend_event event, void *
 		break;
 	case STANDBY_ACTION_PAUSE_RESET:
 		program_standby_reset_to_standby(s);
+		break;
+	case STANDBY_ACTION_PREPARE_STANDBY:
+		program_standby_prepare_preview(s);
 		break;
 	case STANDBY_ACTION_NONE:
 		break;
