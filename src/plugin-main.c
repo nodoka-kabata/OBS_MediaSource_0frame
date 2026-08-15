@@ -22,8 +22,11 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 OBS_DECLARE_MODULE()
 OBS_MODULE_USE_DEFAULT_LOCALE(PLUGIN_NAME, "en-US")
 
+extern struct obs_source_info program_standby_source_info; // defined at bottom of program-standby-source.c
+
 bool obs_module_load(void)
 {
+	obs_register_source(&program_standby_source_info);
 	obs_log(LOG_INFO, "program-standby-source plugin loaded");
 	return true;
 }

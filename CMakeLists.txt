@@ -34,6 +34,20 @@ if(ENABLE_QT)
   )
 endif()
 
-target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.c)
+string(JSON _obs_studio_version GET ${buildspec} dependencies obs-studio version)
+set(_obs_studio_dir "${CMAKE_CURRENT_SOURCE_DIR}/.deps/obs-studio-${_obs_studio_version}")
+
+list(APPEND CMAKE_MODULE_PATH "${_obs_studio_dir}/cmake/finders")
+find_package(FFmpeg REQUIRED avcodec avformat avutil swscale swresample)
+
+# media-playback is an internal, unversioned OBS library (INTERFACE target,
+# no separate release/install package) - pull its sources in directly from
+# the pinned obs-studio checkout fetched by buildspec.json.
+add_subdirectory("${_obs_studio_dir}/shared/media-playback" "${CMAKE_CURRENT_BINARY_DIR}/media-playback")
+
+target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.c src/program-standby-source.c src/obs-ffmpeg-compat.h
+                                              src/obs-ffmpeg-formats.h
+)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OBS::media-playback FFmpeg::swscale FFmpeg::swresample)
 
 set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})
