@@ -23,7 +23,9 @@ $installer = Get-Content -Raw -LiteralPath $scriptPath
 $builder = Get-Content -Raw -LiteralPath $buildPath
 
 Assert-Matches $installer 'PrivilegesRequired=lowest' 'Installer must not require administrator privileges.'
-Assert-Matches $installer 'DefaultDirName=\{userappdata\}\\obs-studio\\plugins\\program-standby-source' 'Installer must target the OBS per-user plugin directory.'
+Assert-Matches $installer 'DefaultDirName=\{commonappdata\}\\obs-studio\\plugins\\program-standby-source' 'Installer must target the OBS Windows plugin directory.'
+Assert-Matches $installer 'UsePreviousAppDir=no' 'Installer must not reuse the obsolete per-user install path.'
+Assert-Matches $installer '\[InstallDelete\][\s\S]*\{userappdata\}\\obs-studio\\plugins\\program-standby-source' 'Installer must remove the obsolete per-user plugin directory.'
 Assert-Matches $installer 'program-standby-source\\bin\\64bit\\program-standby-source\.dll' 'Installer must include the x64 plugin DLL.'
 Assert-Matches $installer 'program-standby-source\\data\\locale\\\*\.ini' 'Installer must include locale files.'
 Assert-Matches $installer 'ArchitecturesAllowed=x64compatible' 'Installer must reject unsupported architectures.'

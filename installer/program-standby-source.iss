@@ -12,7 +12,8 @@ AppId={{9DAEAFD0-4699-4E55-8BF5-D6E14A57496F}
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppPublisher=rirorochannel
-DefaultDirName={userappdata}\obs-studio\plugins\program-standby-source
+DefaultDirName={commonappdata}\obs-studio\plugins\program-standby-source
+UsePreviousAppDir=no
 DisableDirPage=yes
 DisableProgramGroupPage=yes
 LicenseFile=..\LICENSE
@@ -35,3 +36,6 @@ Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
 [Files]
 Source: "{#SourceDir}\program-standby-source\bin\64bit\program-standby-source.dll"; DestDir: "{app}\bin\64bit"; Flags: ignoreversion restartreplace
 Source: "{#SourceDir}\program-standby-source\data\locale\*.ini"; DestDir: "{app}\data\locale"; Flags: ignoreversion
+
+[InstallDelete]
+Type: filesandordirs; Name: "{userappdata}\obs-studio\plugins\program-standby-source"

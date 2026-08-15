@@ -27,7 +27,7 @@ OBS Studioを終了し、配布された`Program Standby Source-{version}-Window
 手動で導入する場合は、ビルド済みファイルをOBSのユーザープラグインフォルダーへ次の構成で配置します。
 
 ```text
-%APPDATA%\obs-studio\plugins\program-standby-source\
+%PROGRAMDATA%\obs-studio\plugins\program-standby-source\
 ├─ bin\64bit\program-standby-source.dll
 └─ data\locale\
    ├─ en-US.ini
