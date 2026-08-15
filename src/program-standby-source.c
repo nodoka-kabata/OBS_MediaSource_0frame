@@ -742,6 +742,18 @@ static void standby_source_activate(void *data)
 static void standby_source_deactivate(void *data)
 {
 	struct standby_source *s = data;
+	obs_data_t *settings = obs_source_get_settings(s->source);
+	bool program_standby_enabled = obs_data_get_bool(settings, "program_standby_enabled");
+	obs_data_release(settings);
+
+	if (program_standby_enabled) {
+		standby_action_t action = standby_studio_action(obs_frontend_preview_program_mode_active(),
+							 standby_is_source_in_program(s->source),
+							 standby_is_source_in_preview(s->source));
+		if (action == STANDBY_ACTION_PAUSE_RESET)
+			program_standby_reset_to_standby(s);
+		return;
+	}
 
 	if (s->restart_on_activate) {
 		if (s->media) {
@@ -782,7 +794,7 @@ static void program_standby_prepare_preview(struct standby_source *s)
 
 static void program_standby_prepare_preview_if_needed(struct standby_source *s)
 {
-	standby_action_t action = standby_preview_action(obs_frontend_preview_program_mode_active(),
+	standby_action_t action = standby_studio_action(obs_frontend_preview_program_mode_active(),
 							 standby_is_source_in_program(s->source),
 							 standby_is_source_in_preview(s->source));
 	if (action == STANDBY_ACTION_PREPARE_STANDBY)
@@ -810,7 +822,7 @@ static void program_standby_frontend_event(enum obs_frontend_event event, void *
 		action = standby_next_action(s->program_standby_was_in_program, is_in_program, &new_flag);
 		s->program_standby_was_in_program = new_flag;
 	} else {
-		action = standby_preview_action(obs_frontend_preview_program_mode_active(),
+		action = standby_studio_action(obs_frontend_preview_program_mode_active(),
 						standby_is_source_in_program(s->source),
 						standby_is_source_in_preview(s->source));
 	}

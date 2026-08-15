@@ -13,8 +13,8 @@ typedef enum {
 // and return the new flag to store for next time via *out_new_flag.
 standby_action_t standby_next_action(bool was_in_program, bool is_in_program, bool *out_new_flag);
 
-// Preview standby exists only on the separate Studio Mode preview bus and must never
-// interfere with a source that is currently in Program.
-standby_action_t standby_preview_action(bool studio_mode, bool is_in_program, bool is_in_preview);
+// In Studio Mode, prepare a Preview-only source or reset an off-bus source.
+// Never interfere with a source that is currently in Program.
+standby_action_t standby_studio_action(bool studio_mode, bool is_in_program, bool is_in_preview);
 
 #endif
