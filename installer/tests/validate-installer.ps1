@@ -28,8 +28,11 @@ Assert-Matches $installer 'program-standby-source\\bin\\64bit\\program-standby-s
 Assert-Matches $installer 'program-standby-source\\data\\locale\\\*\.ini' 'Installer must include locale files.'
 Assert-Matches $installer 'ArchitecturesAllowed=x64compatible' 'Installer must reject unsupported architectures.'
 Assert-Matches $builder 'CMAKE_COMMAND:INTERNAL' 'Build script must discover CMake from the configured build tree.'
+Assert-Matches $builder "@\('--preset'" 'Build script must reconfigure dependencies before building.'
+Assert-Matches $builder "'--fresh'" 'Build script must discard stale dependency caches.'
 Assert-Matches $builder "@\('--build'" 'Build script must build the plugin.'
 Assert-Matches $builder "@\('--install'" 'Build script must stage the plugin.'
 Assert-Matches $builder 'ISCC\.exe' 'Build script must invoke the Inno Setup compiler.'
+Assert-Matches $builder 'validate-obs-compatibility\.ps1' 'Build script must validate the plugin against the installed OBS runtime.'
 
 Write-Host 'Installer validation passed.'

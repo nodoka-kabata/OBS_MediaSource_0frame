@@ -15,7 +15,7 @@ OBS Studioのプログラム出力へシーンが切り替わった瞬間に、�
 
 ## 動作環境
 
-- OBS Studio 31.1.1
+- OBS Studio 32.2.1
 - Windows x64
 
 このプラグインはOBS内部の`media-playback`を利用しているため、異なるOBSバージョンでは再ビルドや追従修正が必要になる場合があります。
@@ -91,6 +91,12 @@ test_standby_state.exe
 ```
 
 成功時は、それぞれ`all assertions passed`と表示されます。
+
+ビルド済みDLLがインストール済みOBSのランタイムDLLと互換であることは、次で確認できます。Windowsインストーラー生成時にも同じ検証が自動実行されます。
+
+```powershell
+.\installer\tests\validate-obs-compatibility.ps1
+```
 
 ## 構成
 

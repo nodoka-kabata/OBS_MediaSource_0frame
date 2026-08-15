@@ -1,11 +1,13 @@
 param(
     [ValidateSet('Release', 'RelWithDebInfo')]
     [string] $Configuration = 'Release',
+    [string] $Preset = 'windows-x64',
     [string] $BuildDir = 'build_x64',
     [string] $StagingDir = '',
     [string] $OutputDir = 'dist',
     [string] $CmakePath = '',
-    [string] $IsccPath = ''
+    [string] $IsccPath = '',
+    [string] $ObsBin = 'C:/Program Files/obs-studio/bin/64bit'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -49,6 +51,12 @@ if (-not $CmakePath -or -not (Test-Path -LiteralPath $CmakePath -PathType Leaf))
     throw 'cmake.exe was not found. Configure the project first or pass -CmakePath.'
 }
 
+Push-Location $repoRoot
+try {
+    Invoke-Native $CmakePath @('--preset', $Preset, '--fresh')
+} finally {
+    Pop-Location
+}
 Invoke-Native $CmakePath @('--build', $BuildDir, '--config', $Configuration)
 Invoke-Native $CmakePath @('--install', $BuildDir, '--config', $Configuration, '--prefix', $StagingDir)
 
@@ -62,6 +70,13 @@ foreach ($file in $requiredFiles) {
     if (-not (Test-Path -LiteralPath $file -PathType Leaf)) {
         throw "Required installer input is missing: $file"
     }
+}
+
+if (Test-Path -LiteralPath $ObsBin -PathType Container) {
+    $compatibilityTest = Join-Path $PSScriptRoot 'tests/validate-obs-compatibility.ps1'
+    & $compatibilityTest -PluginDll $requiredFiles[0] -ObsBin $ObsBin
+} else {
+    Write-Warning "OBS runtime compatibility was not checked because its binary directory was not found: $ObsBin"
 }
 
 if (-not $IsccPath) {
