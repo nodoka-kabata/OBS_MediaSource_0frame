@@ -1,0 +1,30 @@
+# Workflow scratch dir (not part of the shipped plugin)
+/.superpowers/
+
+# CMake build output directories (from CMakePresets.json binaryDir)
+/build_x64/
+/build_x86_64/
+/build_macos/
+/build/
+
+# Downloaded build dependencies (obs-studio sources, obs-deps, Qt6 prebuilts)
+/.deps/
+
+# Build artifacts that can end up anywhere if built ad-hoc
+*.exe
+*.obj
+*.pdb
+*.dll
+*.lib
+*.exp
+*.ilk
+compile_output*.txt
+
+# Lock files
+*.lock.json
+
+# macOS legacy resource forks
+.DS_Store
+
+# CMake build number cache
+/cmake/.CMakeBuildNumber
