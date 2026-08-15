@@ -496,6 +496,18 @@ static void standby_source_update(void *data, obs_data_t *settings)
 	s->restart_on_activate = !astrcmpi_n(input, RIST_PROTO, sizeof(RIST_PROTO) - 1)
 					 ? false
 					 : obs_data_get_bool(settings, "restart_on_activate");
+
+	/* program_standby_enabled and restart_on_activate both drive obs_source_media_restart()/
+	 * media_playback_stop() off the same activate/deactivate-shaped signal (native source
+	 * activation vs. our own scene-membership check). Running both at once double-fires
+	 * playback control on every cut-in/cut-out, so force restart_on_activate off - in both the
+	 * stored setting (so it stays off next load) and the live struct - whenever program-standby
+	 * is on. Task 6 already greys out the checkbox in the UI; this makes the underlying value
+	 * match, including for settings applied programmatically. */
+	if (obs_data_get_bool(settings, "program_standby_enabled")) {
+		obs_data_set_bool(settings, "restart_on_activate", false);
+		s->restart_on_activate = false;
+	}
 	s->range = range;
 	is_linear_alpha = obs_data_get_bool(settings, "linear_alpha");
 	s->is_linear_alpha = is_linear_alpha;
