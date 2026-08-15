@@ -122,12 +122,24 @@ static bool is_local_file_modified(obs_properties_t *props, obs_property_t *prop
 	return true;
 }
 
+static bool program_standby_enabled_modified(obs_properties_t *props, obs_property_t *prop, obs_data_t *settings)
+{
+	UNUSED_PARAMETER(prop);
+
+	bool enabled = obs_data_get_bool(settings, "program_standby_enabled");
+	obs_property_t *restart_prop = obs_properties_get(props, "restart_on_activate");
+	obs_property_set_enabled(restart_prop, !enabled);
+
+	return true;
+}
+
 static void standby_source_defaults(obs_data_t *settings)
 {
 	obs_data_set_default_bool(settings, "is_local_file", true);
 	obs_data_set_default_bool(settings, "looping", false);
 	obs_data_set_default_bool(settings, "clear_on_media_end", true);
 	obs_data_set_default_bool(settings, "restart_on_activate", true);
+	obs_data_set_default_bool(settings, "program_standby_enabled", false);
 	obs_data_set_default_bool(settings, "linear_alpha", false);
 	obs_data_set_default_int(settings, "reconnect_delay_sec", 10);
 	obs_data_set_default_int(settings, "buffering_mb", 2);
@@ -183,6 +195,9 @@ static obs_properties_t *standby_source_getproperties(void *data)
 	obs_properties_add_bool(props, "looping", obs_module_text("Looping"));
 
 	obs_properties_add_bool(props, "restart_on_activate", obs_module_text("RestartWhenActivated"));
+
+	prop = obs_properties_add_bool(props, "program_standby_enabled", obs_module_text("ProgramStandbyEnabled"));
+	obs_property_set_modified_callback(prop, program_standby_enabled_modified);
 
 	prop = obs_properties_add_int_slider(props, "buffering_mb", obs_module_text("BufferingMB"), 0, 16, 1);
 	obs_property_int_set_suffix(prop, " MB");
