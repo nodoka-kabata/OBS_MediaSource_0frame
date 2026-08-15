@@ -31,6 +31,10 @@
 #include "obs-ffmpeg-formats.h"
 
 #include <media-playback/media-playback.h>
+#include <obs-frontend-api.h>
+
+#include "standby-state.h"
+#include "scene-membership-obs.h"
 
 #define FF_LOG_S(source, level, format, ...) \
 	blog(level, "[Media Source '%s']: " format, obs_source_get_name(source), ##__VA_ARGS__)
@@ -72,7 +76,16 @@ struct standby_source {
 	enum obs_media_state state;
 	obs_hotkey_pair_id play_pause_hotkey;
 	obs_hotkey_id stop_hotkey;
+
+	bool program_standby_was_in_program; // last known "in program scene" state, only meaningful when program_standby_enabled
 };
+
+// Forward declarations: definitions live next to standby_source_activate/deactivate below,
+// since they reuse those functions' exact media-playback calls, but standby_source_create/
+// destroy (defined earlier in this file) need to reference them too.
+static void program_standby_start_playback(struct standby_source *s);
+static void program_standby_reset_to_standby(struct standby_source *s);
+static void program_standby_frontend_event(enum obs_frontend_event event, void *data);
 
 // Used to safely cancel and join any active reconnect threads
 // Use this to join any finished reconnect thread too!
@@ -514,6 +527,14 @@ static void standby_source_update(void *data, obs_data_t *settings)
 	dump_source_info(s, input, input_format);
 	if ((!s->restart_on_activate || active) && should_restart_media)
 		standby_source_start(s);
+
+	bool program_standby_enabled = obs_data_get_bool(settings, "program_standby_enabled");
+	if (program_standby_enabled && !s->program_standby_was_in_program) {
+		bool is_in_program = standby_is_source_in_program(s->source);
+		s->program_standby_was_in_program = is_in_program;
+		if (!is_in_program)
+			program_standby_reset_to_standby(s);
+	}
 }
 
 static const char *standby_source_getname(void *unused)
@@ -652,12 +673,24 @@ static void *standby_source_create(obs_data_t *settings, obs_source_t *source)
 	proc_handler_add(ph, "void get_nb_frames(out int num_frames)", get_nb_frames, s);
 
 	standby_source_update(s, settings);
+
+	obs_frontend_add_event_callback(program_standby_frontend_event, s);
+
+	if (obs_data_get_bool(settings, "program_standby_enabled")) {
+		bool now = standby_is_source_in_program(s->source);
+		s->program_standby_was_in_program = now;
+		if (!now)
+			program_standby_reset_to_standby(s);
+	}
+
 	return s;
 }
 
 static void standby_source_destroy(void *data)
 {
 	struct standby_source *s = data;
+
+	obs_frontend_remove_event_callback(program_standby_frontend_event, s);
 
 	stop_reconnect_thread(s);
 
@@ -693,6 +726,57 @@ static void standby_source_deactivate(void *data)
 			if (s->is_clear_on_media_end)
 				obs_source_output_video(s->source, NULL);
 		}
+	}
+}
+
+// Reuses the exact call standby_source_activate() makes to start playback
+// (obs_source_media_restart(), which routes through standby_source_restart() ->
+// standby_source_start() -> media_playback_play()). Not reimplemented.
+static void program_standby_start_playback(struct standby_source *s)
+{
+	obs_source_media_restart(s->source);
+}
+
+// Reuses the exact calls standby_source_deactivate() makes to pause and reset: media_playback_stop()
+// (which internally seeks the media back to its start, same as the stock restart-on-activate path)
+// followed by clearing the displayed frame if is_clear_on_media_end is set. Not reimplemented.
+static void program_standby_reset_to_standby(struct standby_source *s)
+{
+	if (s->media) {
+		media_playback_stop(s->media);
+
+		if (s->is_clear_on_media_end)
+			obs_source_output_video(s->source, NULL);
+	}
+}
+
+static void program_standby_frontend_event(enum obs_frontend_event event, void *data)
+{
+	if (event != OBS_FRONTEND_EVENT_SCENE_CHANGED)
+		return;
+
+	struct standby_source *s = data;
+
+	obs_data_t *settings = obs_source_get_settings(s->source);
+	bool enabled = obs_data_get_bool(settings, "program_standby_enabled");
+	obs_data_release(settings);
+	if (!enabled)
+		return;
+
+	bool is_in_program = standby_is_source_in_program(s->source);
+	bool new_flag;
+	standby_action_t action = standby_next_action(s->program_standby_was_in_program, is_in_program, &new_flag);
+	s->program_standby_was_in_program = new_flag;
+
+	switch (action) {
+	case STANDBY_ACTION_PLAY:
+		program_standby_start_playback(s);
+		break;
+	case STANDBY_ACTION_PAUSE_RESET:
+		program_standby_reset_to_standby(s);
+		break;
+	case STANDBY_ACTION_NONE:
+		break;
 	}
 }
 

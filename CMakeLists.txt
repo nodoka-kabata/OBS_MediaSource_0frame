@@ -48,6 +48,7 @@ add_subdirectory("${_obs_studio_dir}/shared/media-playback" "${CMAKE_CURRENT_BIN
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.c src/program-standby-source.c src/obs-ffmpeg-compat.h
                                               src/obs-ffmpeg-formats.h src/scene-membership.h src/scene-membership.c
                                               src/scene-membership-obs.h src/scene-membership-obs.c
+                                              src/standby-state.h src/standby-state.c
 )
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OBS::media-playback FFmpeg::swscale FFmpeg::swresample)
 
