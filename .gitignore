@@ -1,11 +1,17 @@
 # Workflow scratch dir (not part of the shipped plugin)
 /.superpowers/
 
+# Local assistant settings (shared project instructions remain trackable)
+/.claude/settings.local.json
+
 # CMake build output directories (from CMakePresets.json binaryDir)
 /build_x64/
 /build_x86_64/
 /build_macos/
 /build/
+
+# Developer-specific CMake presets
+/CMakeUserPresets.json
 
 # Downloaded build dependencies (obs-studio sources, obs-deps, Qt6 prebuilts)
 /.deps/
@@ -19,6 +25,11 @@
 *.exp
 *.ilk
 compile_output*.txt
+
+# Editor and IDE state
+/.idea/
+/.vs/
+/.vscode/
 
 # Lock files
 *.lock.json
