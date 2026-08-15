@@ -22,16 +22,20 @@ int main(void) {
     assert(new_flag == true);
 
     // Studio mode preview-only: prepare and hold frame 0
-    assert(standby_studio_action(true, false, true) == STANDBY_ACTION_PREPARE_STANDBY);
+    assert(standby_studio_action(true, false, true, false) == STANDBY_ACTION_PREPARE_STANDBY);
 
     // Preview standby must not interfere with Program playback
-    assert(standby_studio_action(true, true, true) == STANDBY_ACTION_NONE);
+    assert(standby_studio_action(true, true, true, false) == STANDBY_ACTION_NONE);
 
     // Outside Studio Mode there is no separate preview bus
-    assert(standby_studio_action(false, false, true) == STANDBY_ACTION_NONE);
+    assert(standby_studio_action(false, false, true, false) == STANDBY_ACTION_NONE);
 
     // Leaving both Program and Preview returns an already-loaded source to frame 0
-    assert(standby_studio_action(true, false, false) == STANDBY_ACTION_PAUSE_RESET);
+    assert(standby_studio_action(true, false, false, false) == STANDBY_ACTION_PAUSE_RESET);
+
+    // If playback already ended, leaving both Program and Preview must restart decoding
+    // before pausing at frame 0; a plain pause+seek cannot revive an ended decoder.
+    assert(standby_studio_action(true, false, false, true) == STANDBY_ACTION_PREPARE_STANDBY);
 
     printf("test_standby_state: all assertions passed\n");
     return 0;

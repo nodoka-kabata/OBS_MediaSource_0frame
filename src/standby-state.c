@@ -9,9 +9,11 @@ standby_action_t standby_next_action(bool was_in_program, bool is_in_program, bo
     return is_in_program ? STANDBY_ACTION_PLAY : STANDBY_ACTION_PAUSE_RESET;
 }
 
-standby_action_t standby_studio_action(bool studio_mode, bool is_in_program, bool is_in_preview) {
+standby_action_t standby_studio_action(bool studio_mode, bool is_in_program, bool is_in_preview,
+                                      bool playback_needs_prepare) {
     if (!studio_mode || is_in_program)
         return STANDBY_ACTION_NONE;
 
-    return is_in_preview ? STANDBY_ACTION_PREPARE_STANDBY : STANDBY_ACTION_PAUSE_RESET;
+    return is_in_preview || playback_needs_prepare ? STANDBY_ACTION_PREPARE_STANDBY
+                                                   : STANDBY_ACTION_PAUSE_RESET;
 }

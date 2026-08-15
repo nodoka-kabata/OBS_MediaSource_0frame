@@ -85,9 +85,15 @@ struct standby_source {
 // destroy (defined earlier in this file) need to reference them too.
 static void program_standby_start_playback(struct standby_source *s);
 static void program_standby_reset_to_standby(struct standby_source *s);
-static void program_standby_prepare_preview(struct standby_source *s);
+static void program_standby_prepare(struct standby_source *s);
 static void program_standby_prepare_preview_if_needed(struct standby_source *s);
 static void program_standby_frontend_event(enum obs_frontend_event event, void *data);
+
+static bool program_standby_playback_needs_prepare(const struct standby_source *s)
+{
+	return !s->media || s->state == OBS_MEDIA_STATE_NONE || s->state == OBS_MEDIA_STATE_STOPPED ||
+	       s->state == OBS_MEDIA_STATE_ENDED;
+}
 
 // Used to safely cancel and join any active reconnect threads
 // Use this to join any finished reconnect thread too!
@@ -749,8 +755,11 @@ static void standby_source_deactivate(void *data)
 	if (program_standby_enabled) {
 		standby_action_t action = standby_studio_action(obs_frontend_preview_program_mode_active(),
 							 standby_is_source_in_program(s->source),
-							 standby_is_source_in_preview(s->source));
-		if (action == STANDBY_ACTION_PAUSE_RESET)
+							 standby_is_source_in_preview(s->source),
+							 program_standby_playback_needs_prepare(s));
+		if (action == STANDBY_ACTION_PREPARE_STANDBY)
+			program_standby_prepare(s);
+		else if (action == STANDBY_ACTION_PAUSE_RESET)
 			program_standby_reset_to_standby(s);
 		return;
 	}
@@ -783,10 +792,9 @@ static void program_standby_reset_to_standby(struct standby_source *s)
 	}
 }
 
-static void program_standby_prepare_preview(struct standby_source *s)
+static void program_standby_prepare(struct standby_source *s)
 {
-	if (!s->media || s->state == OBS_MEDIA_STATE_NONE || s->state == OBS_MEDIA_STATE_STOPPED ||
-	    s->state == OBS_MEDIA_STATE_ENDED)
+	if (program_standby_playback_needs_prepare(s))
 		standby_source_start(s);
 
 	program_standby_reset_to_standby(s);
@@ -796,9 +804,10 @@ static void program_standby_prepare_preview_if_needed(struct standby_source *s)
 {
 	standby_action_t action = standby_studio_action(obs_frontend_preview_program_mode_active(),
 							 standby_is_source_in_program(s->source),
-							 standby_is_source_in_preview(s->source));
+							 standby_is_source_in_preview(s->source),
+							 program_standby_playback_needs_prepare(s));
 	if (action == STANDBY_ACTION_PREPARE_STANDBY)
-		program_standby_prepare_preview(s);
+		program_standby_prepare(s);
 }
 
 static void program_standby_frontend_event(enum obs_frontend_event event, void *data)
@@ -821,10 +830,15 @@ static void program_standby_frontend_event(enum obs_frontend_event event, void *
 		bool new_flag;
 		action = standby_next_action(s->program_standby_was_in_program, is_in_program, &new_flag);
 		s->program_standby_was_in_program = new_flag;
+		if (action == STANDBY_ACTION_PAUSE_RESET && obs_frontend_preview_program_mode_active())
+			action = standby_studio_action(true, is_in_program,
+						       standby_is_source_in_preview(s->source),
+						       program_standby_playback_needs_prepare(s));
 	} else {
 		action = standby_studio_action(obs_frontend_preview_program_mode_active(),
 						standby_is_source_in_program(s->source),
-						standby_is_source_in_preview(s->source));
+						standby_is_source_in_preview(s->source),
+						program_standby_playback_needs_prepare(s));
 	}
 
 	switch (action) {
@@ -835,7 +849,7 @@ static void program_standby_frontend_event(enum obs_frontend_event event, void *
 		program_standby_reset_to_standby(s);
 		break;
 	case STANDBY_ACTION_PREPARE_STANDBY:
-		program_standby_prepare_preview(s);
+		program_standby_prepare(s);
 		break;
 	case STANDBY_ACTION_NONE:
 		break;
