@@ -1,4 +1,5 @@
 #include "scene-membership.h"
+#include <stddef.h>
 
 typedef struct {
     sm_node_t target;
