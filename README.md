@@ -22,7 +22,7 @@ OBS Studioのプログラム出力へシーンが切り替わった瞬間に、�
 
 ## インストール
 
-OBS Studioを終了し、配布された`Program Standby Source-{version}-Windows-x64-Setup.exe`を実行してください。管理者権限は不要です。アンインストールはWindowsの「インストールされているアプリ」から行えます。
+[Releases](https://github.com/nodoka-kabata/OBS_MediaSource_0frame/releases/latest)から`Program Standby Source-{version}-Windows-x64-Setup.exe`をダウンロードします。OBS Studioを終了した状態でインストーラーを実行してください。管理者権限は不要です。アンインストールはWindowsの「インストールされているアプリ」から行えます。
 
 手動で導入する場合は、ビルド済みファイルをOBSのユーザープラグインフォルダーへ次の構成で配置します。
 
